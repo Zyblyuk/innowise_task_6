@@ -21,6 +21,7 @@ cursor = conn.cursor()
 
 
 def upload_csv(**kwargs) -> bool:
+    """Upload csv"""
     data = pd.read_csv(Variable.get('csv_file'), nrows=1)
 
     data.columns = map(lambda x: str(x).upper(), data.columns)
@@ -33,6 +34,7 @@ def upload_csv(**kwargs) -> bool:
 
 
 def create_table_and_stream(ti: TaskInstance) -> bool:
+    """Create table and stream"""
     columns_names = ti.xcom_pull(task_ids="upload_csv", key="columns_names")
 
     create_raw_table = \
@@ -51,6 +53,7 @@ def create_table_and_stream(ti: TaskInstance) -> bool:
 
 
 def write_to_snowflake(ti: TaskInstance) -> bool:
+    """Write csv to snowflake"""
     data = ti.xcom_pull(task_ids="upload_csv", key="data")
 
     data = pd.read_json(data)
@@ -60,6 +63,7 @@ def write_to_snowflake(ti: TaskInstance) -> bool:
 
 
 def stream_to_stage_table(ti: TaskInstance) -> bool:
+    """Insert stream into STAGE_TABLE"""
     columns_names = ti.xcom_pull(task_ids="upload_csv", key="columns_names")
 
     columns_names = columns_names.lstrip("string")
@@ -68,6 +72,7 @@ def stream_to_stage_table(ti: TaskInstance) -> bool:
 
 
 def stream_to_master_table(ti: TaskInstance) -> bool:
+    """Insert stream into MASTER_TABLE"""
     columns_names = ti.xcom_pull(task_ids="upload_csv", key="columns_names")
     columns_names = columns_names.lstrip("string")
     cursor.execute(f"INSERT INTO MASTER_TABLE (SELECT {columns_names} FROM STAGE_STREAM)")
